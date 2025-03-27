@@ -1,5 +1,6 @@
 import os
 import datetime
+
 from typing import List, Tuple, Optional
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -20,10 +21,11 @@ class SheetsClient:
 
     def get_sheet_data(self, date: datetime.date) -> List[List[str]]:
         target_date = date.strftime("%d %B")
+        print(f"🔍 Looking for sheet with date: {target_date}")
         gid, sheet_name = self._get_sheet_info(target_date)
         
         if not sheet_name:
-            print(f"No sheet found for date: {target_date}")
+            print(f"❌ No sheet found for date: {target_date}")
             return []
 
         try:
@@ -32,9 +34,11 @@ class SheetsClient:
                 spreadsheetId=self.sheet_id,
                 range=range_name
             ).execute()
-            return result.get('values', [])
+            data = result.get('values', [])
+            print(f"✓ Found sheet '{sheet_name}' with {len(data)} rows")
+            return data
         except Exception as e:
-            print(f"Error fetching data: {e}")
+            print(f"❌ Error fetching data: {e}")
             return []
 
     def _get_sheet_info(self, target_date: str) -> Tuple[Optional[str], Optional[str]]:

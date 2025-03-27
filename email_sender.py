@@ -1,9 +1,10 @@
 import os
 import smtplib
-from typing import List, Optional
+import datetime
+
+from typing import List
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import datetime
 
 class EmailSender:
     def __init__(self):
@@ -13,6 +14,11 @@ class EmailSender:
         self.password = os.getenv("EMAIL_PASSWORD")
         self.recipients = os.getenv("RECIPIENTS", "").split(',')
         self.cc_recipient = os.getenv("CC_RECIPIENT")
+        self.domain = os.getenv("EMAIL_DOMAIN", "example.com")
+
+    def _generate_message_id(self, date: datetime.date) -> str:
+        """Generate consistent Message-ID for a given date"""
+        return f"<daily-allocation-{date.strftime('%Y%m%d')}@{self.domain}>"
 
     def format_tasks_for_email(self, data: List[List[str]]) -> str:
         if not data:
@@ -49,28 +55,25 @@ class EmailSender:
         next_day_data: List[List[str]], 
         date_today: datetime.date,
         next_working_day: datetime.date,
-        in_reply_to: Optional[str] = None
+        email_type: str = "new"  
     ) -> None:
         msg = MIMEMultipart()
         msg['From'] = f"Falak <{self.username}>"
         msg['To'] = ', '.join(self.recipients)
         msg['Cc'] = self.cc_recipient
-        
-        today_str = date_today.strftime('%d %B %Y')
-        next_day_str = next_working_day.strftime('%d %B %Y')
-        
-        current_tasks = self.format_tasks_for_email(current_day_data)
-        next_day_tasks = self.format_tasks_for_email(next_day_data)
-        
-        if in_reply_to:
-            msg['In-Reply-To'] = in_reply_to
-            msg['References'] = in_reply_to
-            msg['Subject'] = f"Re: Daily Task Allocation - {today_str}"
-            body = self._create_reply_body(today_str, current_tasks)
+
+        if email_type == "reply":
+            msg['In-Reply-To'] = self._generate_message_id(date_today)
+            msg['References'] = self._generate_message_id(date_today)
+            msg['Subject'] = f"Re: Daily Task Allocation - {date_today.strftime('%d %B %Y')}"
+            body = self._create_reply_body(date_today.strftime('%d %B %Y'), 
+                                        self.format_tasks_for_email(current_day_data))
         else:
-            msg['Subject'] = f"Daily Task Allocation - {today_str}"
-            body = self._create_new_email_body(today_str, next_day_str, current_tasks, next_day_tasks)
-        
+            msg['Message-ID'] = self._generate_message_id(next_working_day)
+            msg['Subject'] = f"Daily Task Allocation - {next_working_day.strftime('%d %B %Y')}"
+            body = self._create_new_email_body(next_working_day.strftime('%d %B %Y'), 
+                                            self.format_tasks_for_email(next_day_data))
+
         msg.attach(MIMEText(body, 'plain'))
         self._send_email(msg)
 
@@ -84,14 +87,10 @@ Please find below the updated Daily Allocation for {today_str}:
 Best Regards,
 Falak"""
 
-    def _create_new_email_body(self, today_str: str, next_day_str: str, current_tasks: str, next_day_tasks: str) -> str:
+    def _create_new_email_body(self, next_day_str: str, next_day_tasks: str) -> str:
         return f"""Dear Team,
 
-Please find below the Daily Allocation for {today_str}:
-
-{current_tasks}
-
-Please find below the Allocation for {next_day_str}:
+Please find below the Daily Allocation for {next_day_str}:
 
 {next_day_tasks}
 
