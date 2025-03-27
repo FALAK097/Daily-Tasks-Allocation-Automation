@@ -56,21 +56,5 @@ poetry shell
 
 To run as a standalone service:
 ```bash
-poetry run python main.py
+python3 main.py
 ```
-
-To run the API server:
-```bash
-poetry run python api_server.py
-```
-
-## Sheet Format Requirements
-
-- Sheet names should be in the format "DD Month" (e.g., "24 March")
-- Each sheet should contain task allocations in the specified format
-- Required columns: Project, Task, Status
-
-## API Endpoints
-
-- `GET /health`: Check service health
-- `POST /send-update/{message_id}`: Trigger update email
