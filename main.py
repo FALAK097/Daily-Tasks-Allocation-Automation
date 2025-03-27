@@ -64,7 +64,8 @@ class DailyAllocationService:
         else:
             print("⏭️ Skipping new email due to missing next day data")
 
-def handle_shutdown():
+def handle_shutdown(signum=None, frame=None):
+    """Handle graceful shutdown with optional signal parameters"""
     print("\nShutting down gracefully...")
     if hasattr(handle_shutdown, 'service'):
         handle_shutdown.service.scheduler.stop()
@@ -98,7 +99,7 @@ def main():
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        handle_shutdown(None, None)
+        handle_shutdown()  
 
 if __name__ == "__main__":
     main()
